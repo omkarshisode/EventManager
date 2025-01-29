@@ -4,6 +4,7 @@ import CoreData
 struct CreateEventView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) var dismiss
+    
     @State private var selectedImage: UIImage?
     @State private var isPickerPresented: Bool = false
     
@@ -27,11 +28,12 @@ struct CreateEventView: View {
         case description
     }
     
+    let clubs = ["Indiranagar Run Club", "Whitefield Walkers", "Koramangala Fitness Club"]
+    
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {
-                    // Image Placeholder and Picker
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color(.systemGray6))
@@ -49,9 +51,7 @@ struct CreateEventView: View {
                                 Image(systemName: "photo.on.rectangle.angled")
                                     .font(.system(size: 64))
                                     .foregroundColor(.gray)
-                                Button(action: {
-                                    isPickerPresented = true // Show the image picker
-                                }) {
+                                Button(action: { isPickerPresented = true }) {
                                     Text("Add Photo")
                                         .font(.body)
                                         .foregroundColor(.blue)
@@ -60,50 +60,73 @@ struct CreateEventView: View {
                         }
                     }
                     
-                    VStack(alignment: .leading, spacing: 8) {
-                        TextField("Event Title *", text: $eventTitle)
-                            .padding()
-                            .background(fieldErrors[.eventTitle]! ? Color.red.opacity(0.3) : Color(.systemGray6))
-                            .cornerRadius(8)
-                        
-                        TextField("Enter Event Location *", text: $location)
-                            .padding()
-                            .background(fieldErrors[.location]! ? Color.red.opacity(0.3) : Color(.systemGray6))
-                            .cornerRadius(8)
-                        
-                        // Start Date Picker
-                        VStack(alignment: .leading) {
-                            Text("Start Date *")
-                                .font(.headline)
-                            DatePicker(
-                                "Select Start Date",
-                                selection: $selectedDateStart,
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
-                            .labelsHidden() // Hides the label to keep the layout clean
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                    // Event Title
+                    TextField("Event Title *", text: $eventTitle)
+                        .padding()
+                        .background(fieldErrors[.eventTitle]! ? Color.red.opacity(0.3) : Color(.systemGray6))
+                        .cornerRadius(8)
+                    
+                    // Club Picker (Same Width as Title Field)
+                    VStack(alignment: .leading) {
+                        Text("Select Club *").font(.headline)
+                        HStack {
+                            Text(club)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            Menu {
+                                ForEach(clubs, id: \.self) { club in
+                                    Button(club) {
+                                        self.club = club
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "chevron.down")
+                                    .padding()
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(8)
+                            }
                         }
-                        
-                        // End Date Picker
-                        VStack(alignment: .leading) {
-                            Text("End Date *")
-                                .font(.headline)
-                            DatePicker(
-                                "Select End Date",
-                                selection: $selectedDateEnd,
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
-                            .labelsHidden()
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                    }
+                    
+                    // Location Field
+                    TextField("Enter Event Location *", text: $location)
+                        .padding()
+                        .background(fieldErrors[.location]! ? Color.red.opacity(0.3) : Color(.systemGray6))
+                        .cornerRadius(8)
+                    
+                    // Start Date Picker (Date shown in front)
+                    VStack(alignment: .leading) {
+                        Text("Start Date *").font(.headline)
+                        HStack {
+                            Text(formattedDate(selectedDateStart))
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            DatePicker("", selection: $selectedDateStart, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
                         }
-                        
-                        Text("Add Description *")
-                            .font(.headline)
-                        
+                    }
+                    
+                    // End Date Picker (Date shown in front)
+                    VStack(alignment: .leading) {
+                        Text("End Date *").font(.headline)
+                        HStack {
+                            Text(formattedDate(selectedDateEnd))
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            DatePicker("", selection: $selectedDateEnd, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                        }
+                    }
+                    
+                    // Description
+                    VStack(alignment: .leading) {
+                        Text("Add Description *").font(.headline)
                         TextEditor(text: $description)
                             .frame(height: 120)
                             .padding()
@@ -113,6 +136,7 @@ struct CreateEventView: View {
                     
                     Spacer()
                     
+                    // Create Event Button
                     Button(action: {
                         if validateFields() {
                             createEvent()
@@ -170,6 +194,7 @@ struct CreateEventView: View {
         event.endDate = formattedDate(selectedDateEnd)
         event.mediaPath = mediaPath
         event.descriptionText = description
+        event.club = club // Save selected club
         
         do {
             try context.save()
